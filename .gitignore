@@ -1,0 +1,16 @@
+.DS_Store
+.idea
+.gradle
+grafana.db
+*.bak
+build
+
+jmxterm.jar
+
+/tmp
+/clusters/connect/plugins/*
+/clusters/connect/data/*
+
+/clusters/sasl/secrets/*.jks
+/clusters/sasl/secrets/*.key
+/clusters/sasl/certificates/secrets/*
