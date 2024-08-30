@@ -34,5 +34,6 @@ done
 #
 kubectl -n apps port-forward service/schema-registry 8081:8081 &
 kubectl -n apps port-forward service/connect 8083:8083 &
+kubectl -n apps port-forward service/postgres 5432:5432 &
 
 wait

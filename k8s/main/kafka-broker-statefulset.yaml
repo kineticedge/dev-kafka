@@ -21,7 +21,7 @@ spec:
       initContainers:
         - name: wait-for-controller
           image: busybox
-          command: ['sh', '-c', 'until nslookup controller-0.kafka-headless.apps.svc.cluster.local; do echo waiting for connect; sleep 1; done']
+          command: ['sh', '-c', 'until nslookup controller-0.kafka-headless.apps.svc.cluster.local; do echo waiting for controller; sleep 1; done']
       containers:
         - name: kafka
           image: apache/kafka-native:3.8.0
