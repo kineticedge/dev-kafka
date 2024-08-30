@@ -7,6 +7,12 @@ build
 
 jmxterm.jar
 
+docker-compose-kompose.yml
+
+kind-config.yaml
+
+k8s/.old
+
 /tmp
 /clusters/connect/plugins/*
 /clusters/connect/data/*

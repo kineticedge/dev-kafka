@@ -1,0 +1,119 @@
+#compdef kafka-consumer-groups
+
+function _groups() {
+
+  local BROKER
+  local CONFIG_ARG=""
+  local CONFIG_FILE=""
+
+  local index=0
+  for word in ${words[@]}; do
+    if [[ $word == "--bootstrap-server" ]]; then
+      BROKER=${words[$((index + 2))]}
+    elif [[ $word == "--command-config" ]]; then
+      CONFIG_ARG="--command-config"
+      CONFIG_FILE="${words[$((index + 2))]}"
+    fi
+    let index+=1
+  done
+
+  local cache_file="$HOME/tmp/zsh_kafka_groups_cache_$BROKER"
+
+  # 10 minute cache -- TODO consider clearing cache when create or delete is used
+  if [[ ! -f "$cache_file" || $(($(date +%s) - $(stat -f%m $cache_file))) -gt 600 ]]; then
+    local output=$(kafka-consumer-groups --bootstrap-server "$BROKER" "$CONFIG_ARG" "$CONFIG_FILE" --list 2>/dev/null)
+    if [ $? -eq 0 ]; then
+       echo "$output" > "$cache_file"
+    fi
+  fi
+
+  local groups=()
+  while IFS= read -r group; do
+      groups+=("$group")
+  done < "$cache_file"
+
+  compadd ${groups[@]}
+}
+
+
+function _topics() {
+
+  local BROKER
+  local CONFIG_ARG=""
+  local CONFIG_FILE=""
+
+  local index=0
+  for word in ${words[@]}; do
+    if [[ $word == "--bootstrap-server" ]]; then
+      BROKER=${words[$((index + 2))]}
+    elif [[ $word == "--command-config" ]]; then
+      CONFIG_ARG="--command-config"
+      CONFIG_FILE="${words[$((index + 2))]}"
+    fi
+    let index+=1
+  done
+
+  local cache_file="$HOME/tmp/zsh_kafka_topics_cache_$BROKER"
+
+  # 10 minute cache -- TODO consider clearing cache when create or delete is used
+  if [[ ! -f "$cache_file" || $(($(date +%s) - $(stat -f%m $cache_file))) -gt 600 ]]; then
+    #kafka-topics --bootstrap-server "$BROKER" "$CONFIG_ARG" "$CONFIG_FILE" --list > "$cache_file" 2> /dev/null
+    local output=$(kafka-topics --bootstrap-server "$BROKER" "$CONFIG_ARG" "$CONFIG_FILE" --list 2>/dev/null)
+    if [ $? -eq 0 ]; then
+       echo "$output" > "$cache_file"
+    fi
+  fi
+
+  local topics=()
+  while IFS= read -r topic; do
+      topics+=("$topic")
+  done < "$cache_file"
+
+  compadd ${topics[@]}
+}
+
+# if we were to move arguments into commands
+#--list
+#--describe
+#--delete
+#--reset-offsets            --dry-run --execute --to-current/--to-datetime/--to-earliest/--to-latest/--to-offset
+#--delete-offsets
+
+_my_script() {
+
+  local context state
+
+_arguments -C -S -s : \
+  '--all-groups[ Apply to all consumer groups.]' \
+  '--all-topics[ Consider all topics assigned to a group in the _reset-offsets_ process.]' \
+  '--bootstrap-server[ the Kafka server to connect to.]:file:_files' \
+  '--by-duration[ Reset offsets to offset by duration from current timestamp. Format: `PnDTnHnMnS`]:duration' \
+  '--command-config[ property-file containing configs to be passed to Admin Client and Consumer.]:file:_files' \
+  '--delete[ pass in groups to delete topic partition offsets and ownership information over the entire consumer group.]' \
+  '--delete-offsets[ delete offsets of consumer group. Supports one consumer group at the time, and multiple  topics.]' \
+  '--describe[ describe consumer group and list offset lag (number of messages not yet processed) related to given group.]' \
+  '--dry-run[ only show results without executing change, supported operation: reset-offsets.]' \
+  '--execute[ execute operation, supported operations: reset-offsets.]' \
+  '--export[ export operation execution to a CSV file, supported operations: reset-offsets.]:file:_files' \
+  '--from-file[ reset offsets to values defined in CSV file.]:file:_files' \
+  '*--group[ The consumer group we wish to act on.]:group:_groups' \
+  '--list[ list all available groups.]' \
+  '--members[ describe members of the group, supported operation: describe]' \
+  '--offsets[ describe the group and list all topic partitions in the group along with their offset lag. This is the default sub-action of and may be used with `--describe` and `-- bootstrap-server` options only.]' \
+  '--reset-offsets[ reset offsets of consumer group.]' \
+  '--shift-by[ reset offsets shifting current offset by 'n', where 'n' can be positive or negative.]:shift_by' \
+  '--state[ with --describe, includes state of the groups; with --list, use to list groups with specific states.]:state' \
+  '--timeout[ the timeout that can be set for some use cases, default: 5000.]:timeout' \
+  '--to-current[ reset offsets to current offset.]' \
+  '--to-datetime[ reset offsets to offset from datetime, format: `YYYY-MM-DDTHH:mm:SS.sss`.]:to_datetime' \
+  '--to-earliest[ reset offsets to earliest offset.]' \
+  '--to-latest[ reset offsets to latest offset.]' \
+  '--to-offset[ Reset offsets to a specific offset.]:to_offset' \
+  '*--topic[ the topic whose consumer group information should be deleted or topic whose should be included in the reset offset process.]:topic:_topics' \
+  '--verbose[ provide additional information, if any, when describing the group.]' \
+  '--version[ display Kafka version.]' && ret=0
+
+  return $ret
+}
+
+_my_script "$@"

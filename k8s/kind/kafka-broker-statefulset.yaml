@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: broker
+  namespace: apps
+spec:
+  serviceName: "kafka-headless"
+  # cannot scale beyond 9, due to port forwarding setup and controller's node.id is using 10.
+  replicas: 3
+  selector:
+    matchLabels:
+      app: kafka
+      role: broker
+  template:
+    metadata:
+      labels:
+        app: kafka
+        role: broker
+    spec:
+      terminationGracePeriodSeconds: 10
+      initContainers:
+        - name: wait-for-controller
+          image: busybox
+          command: ['sh', '-c', 'until nslookup controller-0.kafka-headless.apps.svc.cluster.local; do echo waiting for connect; sleep 1; done']
+      containers:
+        - name: kafka
+          image: apache/kafka-native:3.8.0
+          ports:
+            - containerPort: 9092
+              name: kafka
+            - containerPort: 9093
+              name: controller
+          env:
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: CLUSTER_ID
+              value: "0000000000000000000000"
+            - name: KAFKA_PROCESS_ROLES
+              value: "broker"
+            - name: KAFKA_CONTROLLER_QUORUM_VOTERS
+              value: "10@controller-0.kafka-headless.apps.svc.cluster.local:9093"
+            - name: KAFKA_CONTROLLER_LISTENER_NAMES
+              value: CONTROLLER
+            - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
+              value: "PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,CONTROLLER:PLAINTEXT"
+#            - name: KAFKA_LISTENERS
+#              value: PLAINTEXT://:9092
+#            - name: KAFKA_ADVERTISED_LISTENERS
+#              value: "PLAINTEXT://$(HOSTNAME).kafka-headless.apps.svc.cluster.local:9092"
+            - name: KAFKA_SECURITY_INTER_BROKER_LISTENER_NAME
+              value: "PLAINTEXT"
+            - name: KAFKA_LOG_DIRS
+              value: "/opt/kafka/data"
+            - name: KAFKA_NUM_PARTITIONS
+              value: "4"
+            - name: KAFKA_MIN_INSYNC_REPLICAS
+              value: "2"
+          volumeMounts:
+            - name: kafka-storage
+              mountPath: /opt/kafka/data
+          command:
+            - sh
+            - -c
+            - |
+              export KAFKA_NODE_ID=$(hostname | awk -F'-' '{print $NF}')
+              export KAFKA_LISTENERS="PLAINTEXT://:9092,PLAINTEXT_HOST://:919${KAFKA_NODE_ID}"
+              export KAFKA_ADVERTISED_LISTENERS="PLAINTEXT://$(HOSTNAME).kafka-headless.apps.svc.cluster.local:9092,PLAINTEXT_HOST://localhost:919${KAFKA_NODE_ID}"
+              exec /etc/kafka/docker/run
+  volumeClaimTemplates:
+    - metadata:
+        name: kafka-storage
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 10Gi  # Adjust storage as needed
+#

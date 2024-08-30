@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: schema-registry
+  namespace: apps
+  labels:
+    app: schema-registry
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: schema-registry
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: schema-registry
+    spec:
+      initContainers:
+        - name: wait-for-broker
+          image: busybox
+          command: ['sh', '-c', 'until nslookup broker-0.kafka-headless.apps.svc.cluster.local; do echo waiting for connect; sleep 1; done']
+      containers:
+        - env:
+            - name: CONFLUENT_METRICS_ENABLE
+              value: "false"
+            - name: SCHEMA_REGISTRY_HOST_NAME
+              value: schema-registry
+            - name: SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS
+              value: broker-1.kafka-headless.apps.svc.cluster.local:9092
+          image: confluentinc/cp-schema-registry:7.6.1
+          livenessProbe:
+            exec:
+              command:
+                - curl --fail http://localhost:8081/ || exit 1
+            failureThreshold: 3
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 5
+          name: dk-schema-registry
+          ports:
+            - containerPort: 8081
+              protocol: TCP
+#          volumeMounts:
+#            - mountPath: /etc/schema-registry/secrets
+#              name: schema-registry-cm0
+#            - mountPath: /opt/jmx_prometheus
+#              name: schema-registry-claim1
+      hostname: schema-registry
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 60
+#      volumes:
+#        - configMap:
+#            name: schema-registry-cm0
+#          name: schema-registry-cm0
+#        - name: schema-registry-claim1
+#          persistentVolumeClaim:
+#            claimName: schema-registry-claim1

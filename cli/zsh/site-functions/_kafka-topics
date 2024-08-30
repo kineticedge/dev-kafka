@@ -1,0 +1,112 @@
+#compdef kafka-topics
+
+function _configs() {
+
+  local configs=(
+    "cleanup.policy"
+    "compression.type"
+    "delete.retention.ms"
+    "file.delete.delay.ms"
+    "flush.messages"
+    "flush.ms"
+    "follower.replication.throttled.replicas"
+    "index.interval.bytes"
+    "leader.replication.throttled.replicas"
+    "local.retention.bytes"
+    "local.retention.ms"
+    "max.compaction.lag.ms"
+    "max.message.bytes"
+    "message.downconversion.enable"
+    "message.format.version"
+    "message.timestamp.difference.max.ms"
+    "message.timestamp.type"
+    "min.cleanable.dirty.ratio"
+    "min.compaction.lag.ms"
+    "min.insync.replicas"
+    "preallocate"
+    "remote.storage.enable"
+    "retention.bytes"
+    "retention.ms"
+    "segment.bytes"
+    "segment.index.bytes"
+    "segment.jitter.ms"
+    "segment.ms"
+    "unclean.leader.election.enable"
+  )
+
+  compadd -S "=" "${configs[@]}"
+}
+
+function _topics() {
+
+  local BROKER
+  local CONFIG_ARG=""
+  local CONFIG_FILE=""
+
+  local index=0
+  for word in ${words[@]}; do
+    if [[ $word == "--bootstrap-server" ]]; then
+      BROKER=${words[$((index + 2))]}
+    elif [[ $word == "--command-config" ]]; then
+      CONFIG_ARG="--command-config"
+      CONFIG_FILE="${words[$((index + 2))]}"
+    fi
+    let index+=1
+  done
+
+  local cache_file="$HOME/tmp/zsh_kafka_topics_cache_$BROKER"
+
+  # 10 minute cache -- TODO consider clearing cache when create or delete is used
+  if [[ ! -f "$cache_file" || $(($(date +%s) - $(stat -f%m $cache_file))) -gt 600 ]]; then
+    #kafka-topics --bootstrap-server "$BROKER" "$CONFIG_ARG" "$CONFIG_FILE" --list > "$cache_file" 2> /dev/null
+    local output=$(kafka-topics --bootstrap-server "$BROKER" "$CONFIG_ARG" "$CONFIG_FILE" --list 2>/dev/null)
+    if [ $? -eq 0 ]; then
+       echo "$output" > "$cache_file"
+    fi
+  fi
+
+  #topics=($(kafka-topics --bootstrap-server "$BROKER" --list))
+
+  local topics=()
+  while IFS= read -r topic; do
+      topics+=("$topic")
+  done < "$cache_file"
+
+  #compadd `kafka-topics --bootstrap-server localhost:9092 --list`
+  compadd ${topics[@]}
+}
+
+# if we were to move arguments into commands
+# --list
+# --create
+# --alter
+# --delete
+# --describe
+
+
+_arguments -S -s : \
+  '--alter[ alter the number of partitions, replica assignment, and/or configuration for the topic.]' \
+  '--at-min-isr-partitions[ if set when describing topics, only show partitions whose isr count is equal to the configured minimum.]' \
+  '--bootstrap-server[ the Kafka server to connect to.]:file:_files' \
+  '--command-config[ property file containing configs to be passed to Admin Client.]:file:_files' \
+  '*--config[ a topic configuration override for the topic being created or altered.]:config:_configs' \
+  '--create[ create a new topic.]' \
+  '--delete[ delete a topic]' \
+  '--delete-config[ a topic configuration override to be removed for an existing topic.]:file:_files' \
+  '--describe[ list details for the given topics.]' \
+  '--disable-rack-aware[ disable rack aware replica assignment.]' \
+  '--exclude-internal[ exclude internal topics when running list or describe command.]' \
+  '--if-exists[ if set when altering or deleting or describing topics, the action will only execute if the topic exists.]' \
+  '--if-not-exists[ if set when creating topics, the action will only execute if the topic does not already exist.]' \
+  '--list[ list all available topics.]' \
+  '--partitions[ the number of partitions for the topic being created or altered.]:file:_files' \
+  '--replica-assignment[ a list of manual partition-to-broker assignments for the topic being created or altered.]:file:_files' \
+  '--replica-placement[ this configuration is a JSON object that controls the set of replicas which will always be allowed to join the ISR.]:file:_files' \
+  '--replication-factor[ the replication factor for each partition in the topic being created.]:file:_files' \
+  '--topic[ the topic to create, alter, describe or delete.]:topic:_topics' \
+  '--topic-id[ the topic-id to describe.]:topic:_topics' \
+  '--topics-with-overrides[ if set when describing topics, only show topics that have overridden configs.]' \
+  '--unavailable-partitions[ if set when describing topics, only show partitions whose leader is not available.]' \
+  '--under-min-isr-partitions[ if set when describing topics, only show partitions whose isr count is less than the configured minimum.]' \
+  '--under-replicated-partitions[ if set when describing topics, only show under replicated partitions.]' \
+  '--version[ display Kafka version.]'

@@ -1,0 +1,74 @@
+ '--command-config[ property-file containing configs to be passed to Admin Client and Consumer.]:file:_files' \
+ '--delete[ pass in groups to delete topic partition offsets and ownership information over the entire consumer group.]' \
+ '--delete-offsets[ delete offsets of consumer group. Supports one consumer group at the time, and multiple  topics.]' \
+ '--describe[ describe consumer group and list offset lag (number of messages not yet processed) related to given group.]' \
+ '--dry-run[ only show results without executing change, supported operation: reset-offsets.]' \
+ '--execute[ execute operation, supported operations: reset-offsets.]' \
+ '--export[ export operation execution to a CSV file, supported operations: reset-offsets.]:file:_files' \
+ '--from-file[ reset offsets to values defined in CSV file.]:file:_files' \
+ '--members[ describe members of the group, supported operation: describe]' \
+ '--offsets[ describe the group and list all topic partitions in the group along with their offset lag. This is the default sub-action of and may be used with `--describe` and `-- bootstrap-server` options only.]' \
+ '--reset-offsets[ reset offsets of consumer group.]' \
+ '--shift-by[ reset offsets shifting current offset by 'n', where 'n' can be positive or negative.]' \
+ '--state[ with --describe, includes state of the groups; with --list, use to list groups with specific states.]' \
+ '--timeout[ the timeout that can be set for some use cases, default: 5000.]' \
+ '--to-current[ reset offsets to current offset.]' \
+ '--to-datetime[ reset offsets to offset from datetime, format: `YYYY-MM-DDTHH:mm:SS.sss`.]' \
+ '--to-earliest[ reset offsets to earliest offset.]' \
+ '--to-latest[ reset offsets to latest offset.]' \
+ '--to-offset[ Reset offsets to a specific offset.]' \
+ '*--topic[ the topic whose consumer group information should be deleted or topic whose should be included in the reset offset process.]' \
+ '--verbose[ provide additional information, if any, when describing the group.]' \
+
+
+  '--command-config[ property-file containing configs to be passed to Admin Client and Consumer.]:file:_files' \
+  '--delete[ pass in groups to delete topic partition offsets and ownership information over the entire consumer group.]' \
+  '--delete-offsets[ delete offsets of consumer group. Supports one consumer group at the time, and multiple  topics.]' \
+  '--describe[ describe consumer group and list offset lag (number of messages not yet processed) related to given group.]' \
+  '--dry-run[ only show results without executing change, supported operation: reset-offsets.]' \
+  '--execute[ execute operation, supported operations: reset-offsets.]' \
+  '--export[ export operation execution to a CSV file, supported operations: reset-offsets.]:file:_files' \
+  '--from-file[ reset offsets to values defined in CSV file.]:file:_files' \
+  '--members[ describe members of the group, supported operation: describe]' \
+  '--offsets[ describe the group and list all topic partitions in the group along with their offset lag. This is the default sub-action of and may be used with `--describe` and `-- bootstrap-server` options only.]' \
+  '--reset-offsets[ reset offsets of consumer group.]' \
+                                           Supports one consumer group at the
+                                           time, and instances should be
+                                           inactive
+                                         Has 2 execution options: --dry-run
+                                           (the default) to plan which offsets
+                                           to reset, and --execute to update
+                                           the offsets. Additionally, the --
+                                           export option is used to export the
+                                           results to a CSV format.
+                                         You must choose one of the following
+                                           reset specifications: --to-datetime,
+                                           --by-duration, --to-earliest, --to-
+                                           latest, --shift-by, --from-file, --
+                                           to-current, --to-offset.
+                                         To define the scope use --all-topics
+                                           or --topic. One scope must be
+                                           specified unless you use '--from-
+                                           file'.
+  '--shift-by <Long: number-of-offsets>    Reset offsets shifting current offset by 'n', where 'n' can be positive or negative.
+  '--state [String]                        When specified with '--describe', includes the state of the group.
+                                         Example: --bootstrap-server localhost:
+                                           9092 --describe --group group1 --
+                                           state
+                                         When specified with '--list', it
+                                           displays the state of all groups. It
+                                           can also be used to list groups with
+                                           specific states.
+                                         Example: --bootstrap-server localhost:
+                                           9092 --list --state stable,empty
+                                         This option may be used with '--
+                                           describe', '--list' and '--bootstrap-
+                                           server' options only.
+  '--timeout[ the timeout that can be set for some use cases, default: 5000.]' \
+  '--to-current[ reset offsets to current offset.]' \
+  '--to-datetime[ reset offsets to offset from datetime, format: `YYYY-MM-DDTHH:mm:SS.sss`.]' \
+  '--to-earliest[ reset offsets to earliest offset.]' \
+  '--to-latest[ reset offsets to latest offset.]' \
+  '--to-offset[ Reset offsets to a specific offset.]' \
+  '*--topic[ the topic whose consumer group information should be deleted or topic whose should be included in the reset offset process.]' \
+  '--verbose[ provide additional information, if any, when describing the group.]' \
