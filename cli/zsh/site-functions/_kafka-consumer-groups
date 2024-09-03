@@ -1,76 +1,47 @@
 #compdef kafka-consumer-groups
 
+function _extract_arg() {
+  local arg=$1
+  local index=1
+  while [[ $index -le ${#words[@]} ]]; do
+    if [[ ${words[$index]} == $1 ]]; then
+      echo "${words[$((index + 1))]}"
+      return
+    fi
+    ((index++))
+  done
+}
+
 function _groups() {
 
-  local BROKER
-  local CONFIG_ARG=""
-  local CONFIG_FILE=""
+  local BROKER=$(_extract_arg "--bootstrap-server")
+  local CONFIG_FILE=$(_extract_arg "--command-config")
 
-  local index=0
-  for word in ${words[@]}; do
-    if [[ $word == "--bootstrap-server" ]]; then
-      BROKER=${words[$((index + 2))]}
-    elif [[ $word == "--command-config" ]]; then
-      CONFIG_ARG="--command-config"
-      CONFIG_FILE="${words[$((index + 2))]}"
-    fi
-    let index+=1
-  done
-
-  local cache_file="$HOME/tmp/zsh_kafka_groups_cache_$BROKER"
-
-  # 10 minute cache -- TODO consider clearing cache when create or delete is used
-  if [[ ! -f "$cache_file" || $(($(date +%s) - $(stat -f%m $cache_file))) -gt 600 ]]; then
-    local output=$(kafka-consumer-groups --bootstrap-server "$BROKER" "$CONFIG_ARG" "$CONFIG_FILE" --list 2>/dev/null)
-    if [ $? -eq 0 ]; then
-       echo "$output" > "$cache_file"
-    fi
+  local -a groups
+  if [[ ! -x kafka-cli ]]; then
+    groups=(abc $(kafka-cli groups --bootstrap-server "$BROKER" --command-config "$CONFIG_FILE"))
+  else
+    groups=($(kafka-consumer-groups --bootstrap-server "$BROKER" --command-config "$CONFIG_FILE" --list 2>/dev/null))
   fi
-
-  local groups=()
-  while IFS= read -r group; do
-      groups+=("$group")
-  done < "$cache_file"
 
   compadd ${groups[@]}
 }
 
-
 function _topics() {
 
-  local BROKER
-  local CONFIG_ARG=""
-  local CONFIG_FILE=""
+  local BROKER=$(_extract_arg "--bootstrap-server")
+  local CONFIG_FILE=$(_extract_arg "--command-config")
 
-  local index=0
-  for word in ${words[@]}; do
-    if [[ $word == "--bootstrap-server" ]]; then
-      BROKER=${words[$((index + 2))]}
-    elif [[ $word == "--command-config" ]]; then
-      CONFIG_ARG="--command-config"
-      CONFIG_FILE="${words[$((index + 2))]}"
-    fi
-    let index+=1
-  done
-
-  local cache_file="$HOME/tmp/zsh_kafka_topics_cache_$BROKER"
-
-  # 10 minute cache -- TODO consider clearing cache when create or delete is used
-  if [[ ! -f "$cache_file" || $(($(date +%s) - $(stat -f%m $cache_file))) -gt 600 ]]; then
-    #kafka-topics --bootstrap-server "$BROKER" "$CONFIG_ARG" "$CONFIG_FILE" --list > "$cache_file" 2> /dev/null
-    local output=$(kafka-topics --bootstrap-server "$BROKER" "$CONFIG_ARG" "$CONFIG_FILE" --list 2>/dev/null)
-    if [ $? -eq 0 ]; then
-       echo "$output" > "$cache_file"
-    fi
+  local -a topics
+  if [[ ! -x kafka-cli ]]; then
+    topics=(abc $(kafka-cli topics --bootstrap-server "$BROKER" --command-config "$CONFIG_FILE"))
+  else
+    topics=($(kafka-topics --bootstrap-server "$BROKER" --command-config "$CONFIG_FILE" --list))
   fi
-
-  local topics=()
-  while IFS= read -r topic; do
-      topics+=("$topic")
-  done < "$cache_file"
 
   compadd ${topics[@]}
 }
+
 
 # if we were to move arguments into commands
 #--list
@@ -79,7 +50,7 @@ function _topics() {
 #--reset-offsets            --dry-run --execute --to-current/--to-datetime/--to-earliest/--to-latest/--to-offset
 #--delete-offsets
 
-_my_script() {
+_script() {
 
   local context state
 
@@ -116,4 +87,4 @@ _arguments -C -S -s : \
   return $ret
 }
 
-_my_script "$@"
+_script "$@"
