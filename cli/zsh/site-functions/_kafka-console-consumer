@@ -19,7 +19,7 @@ function _groups() {
 
   local -a groups
   if [[ ! -x kafka-cli ]]; then
-    groups=(abc $(kafka-cli groups --bootstrap-server "$BROKER" --command-config "$CONFIG_FILE"))
+    groups=($(kafka-cli groups --bootstrap-server "$BROKER" --command-config "$CONFIG_FILE"))
   else
     groups=($(kafka-consumer-groups --bootstrap-server "$BROKER" --command-config "$CONFIG_FILE" --list 2>/dev/null))
   fi
@@ -34,7 +34,7 @@ function _topics() {
 
   local -a topics
   if [[ ! -x kafka-cli ]]; then
-    topics=(abc $(kafka-cli topics --bootstrap-server "$BROKER" --command.config "$CONFIG_FILE"))
+    topics=($(kafka-cli topics --bootstrap-server "$BROKER" --command.config "$CONFIG_FILE"))
   else
     topics=($(kafka-topics --bootstrap-server "$BROKER" --command.config "$CONFIG_FILE" --list))
   fi
