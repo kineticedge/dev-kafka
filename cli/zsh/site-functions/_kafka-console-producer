@@ -36,7 +36,7 @@ function _topics() {
   if [[ ! -x kafka-cli ]]; then
     topics=($(kafka-cli topics --bootstrap-server "$BROKER" --command-config "$CONFIG_FILE"))
   else
-    topics=($(kafka-topics --bootstrap-server "$BROKER" --command-config "$CONFIG_FILE" --list))
+    topics=($(kafka-topics --bootstrap-server "$BROKER" --command-config "$CONFIG_FILE" --list 2>/dev/null))
   fi
 
   compadd ${topics[@]}
@@ -137,7 +137,7 @@ _script() {
 
 _arguments -S -s : \
   '--batch-size[ Number of messages to send in a single batch if they are not being sent synchronously. please note that this option will be replaced if max- partition-memory-bytes is also set (default: 16384).]:integer' \
-  '--bootstrap-server[ the Kafka server to connect to.]:file:_files' \
+  '--bootstrap-server[ the Kafka server to connect to.]:server:->bootstrap-server' \
   '--compression-codec[ The compression codec: either `none`, `gzip`, `snappy`, `lz4`, or `zstd`. If specified without value, then it defaults to 'gzip'.]:string' \
   '--line-reader[ The class name of the class to use for reading lines from standard in. By default each line is read as a separate message. (default: kafka.tools.ConsoleProducer$LineMessageReader).]:string' \
   '--max-block-ms[ The max time that the producer will block for during a send request. (default: 60000).]:long' \
@@ -157,6 +157,12 @@ _arguments -S -s : \
   '--timeout[ If set and the producer is running in asynchronous mode, this gives the maximum amount of time a message will queue awaiting sufficient batch size. The value is given in ms. This is the option to control `linger.ms` in producer configs. (default: 1000).]:timeout' \
   '--topic[ The topic to produce message to.]:topic:_topics' \
   '--version[ display Kafka version.]' && ret=0
+
+  case $state in
+    (bootstrap-server)
+      compadd "localhost:9092"
+      ;;
+  esac
 
   return $ret
 }

@@ -36,7 +36,7 @@ function _topics() {
   if [[ ! -x kafka-cli ]]; then
     topics=($(kafka-cli topics --bootstrap-server "$BROKER" --command.config "$CONFIG_FILE"))
   else
-    topics=($(kafka-topics --bootstrap-server "$BROKER" --command.config "$CONFIG_FILE" --list))
+    topics=($(kafka-topics --bootstrap-server "$BROKER" --command.config "$CONFIG_FILE" --list 2>/dev/null))
   fi
 
   compadd ${topics[@]}
@@ -149,7 +149,7 @@ _script() {
   local context state
 
 _arguments -S -s : \
-  '--bootstrap-server[ the Kafka server to connect to.]:file:_files' \
+  '--bootstrap-server[ the Kafka server to connect to.]:server:->bootstrap-server' \
   '*--consumer-property[ user-defined properties in the form of key=value to the consumer.]:config:_consumer_configs' \
   '--consumer.config[ consumer config property file.]:file:_files' \
   '--enable-system-events[ Log lifecycle events of the consumer in addition to logging consumed messages. (This is specific for system tests.).]' \
@@ -169,6 +169,12 @@ _arguments -S -s : \
   '--topic[ The topic to consume on.]:topic:_topics' \
   '--value-deserializer[ value deserializer.]:deserializer:_deserializer' \
   '--version[ display Kafka version.]' && ret=0
+
+  case $state in
+    (bootstrap-server)
+      compadd "localhost:9092"
+      ;;
+  esac
 
   return $ret
 }

@@ -3,15 +3,27 @@ package io.kineticedge.cli;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.ConsumerGroupListing;
+import org.apache.kafka.common.KafkaException;
+import org.apache.kafka.common.acl.AccessControlEntryFilter;
+import org.apache.kafka.common.acl.AclBindingFilter;
+import org.apache.kafka.common.config.ConfigException;
+import org.apache.kafka.common.resource.ResourcePatternFilter;
 
 import java.io.FileInputStream;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 public class KafkaList {
+
+  private static boolean debug = false;
 
   public static void main(String[] args) {
 
@@ -21,42 +33,96 @@ public class KafkaList {
 
     Map<String, String> argMap = parseArgs(args);
 
-    String bootstrapServers = argMap.get("bootstrap-server");
-    String commandConfigFile = argMap.get("command-config");
+    final String bootstrapServers = removeSurroundingQuotes(argMap.get("bootstrap-server"));
+
+    // gracefully return nothing, user has not set bootstrap servers.
+    if (bootstrapServers == null || bootstrapServers.isEmpty()) {
+      return;
+    }
+
+    final String commandConfigFile = removeSurroundingQuotes(argMap.get("command-config"));
+    final long timeoutMs = getTimeoutMs(argMap.get("timeout"));
+    debug = argMap.containsKey("debug");
 
     final Map<String, Object> config = new HashMap<>();
     config.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
     config.putAll(toMap(load(commandConfigFile)));
 
+    config.put(AdminClientConfig.REQUEST_TIMEOUT_MS_CONFIG, (int) timeoutMs);
+    config.put(AdminClientConfig.DEFAULT_API_TIMEOUT_MS_CONFIG, (int) timeoutMs);
+
     String command = args[0];
 
     switch (command) {
       case "topics":
-        topics(config).forEach(System.out::println);
+        topics(config, timeoutMs).forEach(System.out::println);
         break;
       case "groups":
-        groups(config).forEach(System.out::println);
+        groups(config, timeoutMs).forEach(System.out::println);
         break;
+      case "principals":
+        principals(config, timeoutMs).forEach(System.out::println);
       default:
     }
 
   }
 
-  private static List<String> topics(final Map<String, Object> config) {
-    try (AdminClient adminClient = AdminClient.create(config)) {
-      return adminClient.listTopics().names().get().stream().sorted().toList();
-    } catch (final ExecutionException | InterruptedException e) {
-      Thread.currentThread().interrupt();
+  private static List<String> topics(final Map<String, Object> config, final long timeoutMs) {
+    try {
+      try (AdminClient adminClient = AdminClient.create(config)) {
+        return adminClient.listTopics().names().get(timeoutMs, TimeUnit.MILLISECONDS).stream().sorted().toList();
+      } catch (final ExecutionException | InterruptedException | TimeoutException e) {
+        if (debug) {
+          e.printStackTrace();
+        }
+        Thread.currentThread().interrupt();
+        return List.of();
+      }
+    } catch (KafkaException ce) {
+      if (debug) {
+        ce.printStackTrace();
+      }
+      return List.of();
+    }
+
+  }
+
+  private static List<String> groups(final Map<String, Object> config, final long timeoutMs) {
+    try {
+      try (AdminClient adminClient = AdminClient.create(config)) {
+        return adminClient.listConsumerGroups().all().get(timeoutMs, TimeUnit.MILLISECONDS).stream().map(ConsumerGroupListing::groupId).sorted().toList();
+      } catch (final ExecutionException | InterruptedException | TimeoutException e) {
+        if (debug) {
+          e.printStackTrace();
+        }
+        Thread.currentThread().interrupt();
+        return List.of();
+      }
+    } catch (KafkaException ce) {
+      if (debug) {
+        ce.printStackTrace();
+      }
       return List.of();
     }
   }
 
-  private static List<String> groups(final Map<String, Object> config) {
-    try (AdminClient adminClient = AdminClient.create(config)) {
-      return adminClient.listConsumerGroups().all().get().stream().map(ConsumerGroupListing::groupId).sorted().toList();
-    } catch (final ExecutionException | InterruptedException e) {
-      Thread.currentThread().interrupt();
-      return List.of();
+  private static Set<String> principals(final Map<String, Object> config, final long timeoutMs) {
+    try {
+      try (AdminClient adminClient = AdminClient.create(config)) {
+        AclBindingFilter filter = new AclBindingFilter(ResourcePatternFilter.ANY, AccessControlEntryFilter.ANY);
+        return adminClient.describeAcls(filter).values().get(timeoutMs, TimeUnit.MILLISECONDS).stream().map(binding -> binding.entry().principal()).sorted().collect(Collectors.toCollection(LinkedHashSet::new));
+      } catch (final ExecutionException | InterruptedException | TimeoutException e) {
+        if (debug) {
+          e.printStackTrace();
+        }
+        Thread.currentThread().interrupt();
+        return Set.of();
+      }
+    } catch (KafkaException ce) {
+      if (debug) {
+        ce.printStackTrace();
+      }
+      return Set.of();
     }
   }
 
@@ -95,4 +161,35 @@ public class KafkaList {
     }
     return argMap;
   }
+
+  private static long getTimeoutMs(String timeout) {
+    long timeoutMs;
+    if (timeout != null) {
+      try {
+        timeoutMs = Long.parseLong(timeout);
+      } catch (NumberFormatException e) {
+        timeoutMs = 1000L;
+      }
+    } else {
+      timeoutMs = 1000L;
+    }
+    return timeoutMs;
+  }
+
+  private static String removeSurroundingQuotes(String str) {
+    if (str == null || str.length() < 2) {
+      return str;
+    }
+
+    char firstChar = str.charAt(0);
+    char lastChar = str.charAt(str.length() - 1);
+
+    // Check if both the first and last characters are either double quotes or single quotes
+    if ((firstChar == '"' && lastChar == '"') || (firstChar == '\'' && lastChar == '\'')) {
+      return str.substring(1, str.length() - 1);
+    }
+
+    return str;
+  }
+
 }
