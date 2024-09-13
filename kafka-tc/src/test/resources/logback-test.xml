@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss} %-5level %logger{24} - %msg</pattern>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="STDOUT" />
+    </root>
+
+    <logger name="io.kineticedge" level="DEBUG" />
+
+    <logger name="org.apache.kafka" level="INFO" />
+    <logger name="org.apache.kafka.clients" level="INFO" />
+    <logger name="org.apache.kafka.clients.admin" level="WARN" />
+    <logger name="org.apache.kafka.clients.producer.internals" level="WARN" />
+    <logger name="org.apache.kafka.clients.consumer.internals" level="WARN" />
+
+    <logger name="com.github.dockerjava" level="INFO" />
+    <logger name="org.testcontainers" level="INFO" />
+
+</configuration>
