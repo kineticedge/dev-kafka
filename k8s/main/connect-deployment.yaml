@@ -1,0 +1,114 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: connect
+  namespace: apps
+  labels:
+    app: connect
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: connect
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: connect
+    spec:
+      initContainers:
+        - name: wait-for-schema-registry
+          image: busybox
+          command: ['sh', '-c', 'until nslookup schema-registry.apps.svc.cluster.local; do echo waiting for schema-registry; sleep 1; done']
+      containers:
+        - env:
+            - name: CONNECT_BOOTSTRAP_SERVERS
+              value: broker-1.kafka-headless.apps.svc.cluster.local:9092
+            - name: CONNECT_CONFIG_PROVIDERS
+              value: file
+            - name: CONNECT_CONFIG_PROVIDERS_FILE_CLASS
+              value: org.apache.kafka.common.config.provider.FileConfigProvider
+            - name: CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR
+              value: "3"
+            - name: CONNECT_CONFIG_STORAGE_TOPIC
+              value: connect-cluster-config
+            - name: CONNECT_CONNECTOR_CLIENT_CONFIG_OVERRIDE_POLICY
+              value: All
+            - name: CONNECT_GROUP_ID
+              value: connect-cluster
+            - name: CONNECT_INTERNAL_KEY_CONVERTER
+              value: org.apache.kafka.connect.json.JsonConverter
+            - name: CONNECT_INTERNAL_VALUE_CONVERTER
+              value: org.apache.kafka.connect.json.JsonConverter
+            - name: CONNECT_KEY_CONVERTER
+              value: io.confluent.connect.avro.AvroConverter
+            - name: CONNECT_KEY_CONVERTER_SCHEMA_REGISTRY_URL
+              value: http://schema-registry:8081
+            - name: CONNECT_LOG4J_ROOT_LOGLEVEL
+              value: INFO
+            - name: CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR
+              value: "3"
+            - name: CONNECT_OFFSET_STORAGE_TOPIC
+              value: connect-cluster-offsets
+            - name: CONNECT_PLUGIN_PATH
+              value: /etc/kafka-connect/jars
+            - name: CONNECT_REST_ADVERTISED_HOST_NAME
+              value: connect-1
+            - name: CONNECT_REST_PORT
+              value: "8083"
+            - name: CONNECT_STATUS_STORAGE_REPLICATION_FACTOR
+              value: "3"
+            - name: CONNECT_STATUS_STORAGE_TOPIC
+              value: connect-cluster-status
+            - name: CONNECT_VALUE_CONVERTER
+              value: io.confluent.connect.avro.AvroConverter
+            - name: CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL
+              value: http://schema-registry:8081
+
+          image: confluentinc/cp-kafka-connect:7.6.1
+          livenessProbe:
+            exec:
+              command:
+                - curl --fail http://localhost:8083/ || exit 1
+            failureThreshold: 3
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 5
+          name: dk-connector
+          ports:
+            - containerPort: 8083
+              protocol: TCP
+#          volumeMounts:
+#            - mountPath: /etc/connector/secrets
+#              name: connector-cm0
+#            - mountPath: /opt/jmx_prometheus
+#              name: connector-claim1
+          volumeMounts:
+            - name: plugins
+              mountPath: /etc/kafka-connect/jars
+            - name: secrets
+              mountPath: /etc/kafka-connect/secrets
+#      volumes:
+#        - name: plugins
+#          persistentVolumeClaim:
+#            claimName: kafka-connect-pvc
+      volumes:
+        - name: plugins
+          hostPath:
+            path: /mnt/data/connect/plugins  # Path inside the kind nodes
+            type: Directory
+        - name: secrets
+          hostPath:
+            path: /mnt/data/connect/secrets  # Path inside the kind nodes
+            type: Directory
+      hostname: connector
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 60
+#      volumes:
+#        - configMap:
+#            name: schema-registry-cm0
+#          name: schema-registry-cm0
+#        - name: schema-registry-claim1
+#          persistentVolumeClaim:
+#            claimName: schema-registry-claim1

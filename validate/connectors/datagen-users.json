@@ -1,0 +1,26 @@
+{
+  "connector.class": "io.confluent.kafka.connect.datagen.DatagenConnector",
+  "tasks.max": "1",
+  "kafka.topic": "users_avro",
+  "_quickstart": "users",
+  "schema.string" : "{  \"namespace\": \"ksql\",  \"name\": \"users\",  \"type\": \"record\",  \"fields\": [{  \"name\": \"registertime\",  \"type\": {\"type\": \"long\",\"arg.properties\": {  \"range\": {\"min\": 1487715775521,\"max\": 1519273364600  }}  }},{  \"name\": \"userid\",  \"type\": {\"type\": \"string\",\"arg.properties\": {  \"regex\": \"User_([1-9]){4}\"}  }},{  \"name\": \"regionid\",  \"type\": {\"type\": \"string\",\"arg.properties\": {  \"regex\": \"Region_[1-9]\"}  }} ]}",
+  "key.converter": "io.confluent.connect.avro.AvroConverter",
+  "key.converter.schema.registry.url": "http://schema-registry:8081",
+  "key.converter.schemas.enable": "true",
+  "value.converter": "io.confluent.connect.avro.AvroConverter",
+  "value.converter.schema.registry.url": "http://schema-registry:8081",
+  "value.converter.schemas.enable": "true",
+  "max.interval": 100,
+  "iterations": 100000,
+
+  "transforms": "createKey",
+
+  "transforms.createKey.type" : "org.apache.kafka.connect.transforms.ValueToKey",
+  "transforms.createKey.fields" : "userid",
+  "_transforms.createKey.predicate": "users",
+
+  "predicates": "users",
+  "predicates.users.type": "org.apache.kafka.connect.transforms.predicates.TopicNameMatches",
+  "predicates.users.pattern": "users_avro"
+
+}

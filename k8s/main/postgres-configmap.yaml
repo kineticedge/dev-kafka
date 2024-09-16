@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-initdb
+  namespace: apps
+data:
+  initdb.sql: |
+    CREATE DATABASE main;
+    CREATE USER admin WITH ENCRYPTED PASSWORD 'postgres';
+    GRANT ALL PRIVILEGES ON DATABASE main TO admin;
